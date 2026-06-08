@@ -1,13 +1,13 @@
 import torch
-from rays import get_rays
+from sampler import sample_points
 
-H = 100
-W = 100
-focal = 100
+rays_o = torch.randn(10,3)
+rays_d = torch.randn(10,3)
 
-c2w = torch.eye(4)
+points, t_vals = sample_points(
+    rays_o,
+    rays_d
+)
 
-rays_o, rays_d = get_rays(H, W, focal, c2w)
-
-print(rays_o.shape)
-print(rays_d.shape)
+print(points.shape)
+print(t_vals.shape)
