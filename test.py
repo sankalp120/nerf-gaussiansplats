@@ -1,16 +1,12 @@
-import torch
-from encoding import PositionalEncoding
+from dataset import NeRFDataset
 
-encoder = PositionalEncoding(L=10)
+dataset = NeRFDataset(
+    "transforms_train.json"
+)
 
-x = torch.rand(5,3)
+print(len(dataset))
 
-encoded = encoder(x)
+image, pose = dataset[0]
 
-print(encoded.shape)
-
-x = torch.tensor([[1.0,0.5,0.25]])
-
-encoder = PositionalEncoding(L=3)
-
-print(encoder(x))
+print(image.shape)
+print(pose.shape)
