@@ -1,7 +1,11 @@
 import torch
 
 def get_rays(H, W, focal, c2w):
-    i, j = torch.meshgrid(torch.arange(W), torch.arange(H))
+    i, j = torch.meshgrid(
+    torch.arange(W, dtype=torch.float32),
+    torch.arange(H, dtype=torch.float32),
+    indexing="xy"
+)
     i = i.t()
     j = j.t()
     dirs = torch.stack([(i - W * 0.5) / focal, -(j - H * 0.5) / focal, -torch.ones_like(i)], -1)

@@ -1,5 +1,5 @@
-# train.py
-
+import os
+import math
 import random
 import numpy as np
 import torch
@@ -13,13 +13,21 @@ from render import volume_render
 
 
 DEVICE = torch.device(
-    "cuda" if torch.cuda.is_available() else "cpu"
+    "cuda" if torch.cuda.is_available()
+    else "cpu"
 )
 
 N_RAYS = 1024
 N_SAMPLES = 64
-NUM_STEPS = 10000
 LR = 5e-4
+NUM_STEPS = 5000
+
+CHECKPOINT_DIR = "checkpoints"
+
+os.makedirs(
+    CHECKPOINT_DIR,
+    exist_ok=True
+)
 
 
 def train_step(
@@ -33,10 +41,6 @@ def train_step(
 
     H, W = image.shape[:2]
 
-    # -------------------------
-    # Generate Rays
-    # -------------------------
-
     rays_o, rays_d = get_rays(
         H,
         W,
@@ -48,10 +52,6 @@ def train_step(
     rays_d = rays_d.reshape(-1, 3)
 
     image = image.reshape(-1, 3)
-
-    # -------------------------
-    # Random Ray Batch
-    # -------------------------
 
     idx = torch.randint(
         0,
@@ -65,10 +65,6 @@ def train_step(
 
     target_rgb = image[idx]
 
-    # -------------------------
-    # Sample Points
-    # -------------------------
-
     points, t_vals = sample_points(
         rays_o_batch,
         rays_d_batch,
@@ -77,23 +73,15 @@ def train_step(
         N_samples=N_SAMPLES
     )
 
-    # -------------------------
-    # Flatten Points
-    # -------------------------
-
     points_flat = points.reshape(-1, 3)
 
-    # -------------------------
-    # Positional Encoding
-    # -------------------------
+    encoded = encoder(
+        points_flat
+    )
 
-    encoded = encoder(points_flat)
-
-    # -------------------------
-    # NeRF Forward
-    # -------------------------
-
-    rgb, sigma = model(encoded)
+    rgb, sigma = model(
+        encoded
+    )
 
     rgb = rgb.reshape(
         N_RAYS,
@@ -106,19 +94,11 @@ def train_step(
         N_SAMPLES
     )
 
-    # -------------------------
-    # Volume Rendering
-    # -------------------------
-
     rgb_pred, _ = volume_render(
         rgb,
         sigma,
         t_vals
     )
-
-    # -------------------------
-    # MSE Loss
-    # -------------------------
 
     loss = torch.mean(
         (rgb_pred - target_rgb) ** 2
@@ -136,10 +116,12 @@ def train_step(
 def main():
 
     dataset = NeRFDataset(
-        "transforms_train.json"
+        "data/lego/transforms_train.json"
     )
 
-    model = TinyNeRF().to(DEVICE)
+    model = TinyNeRF().to(
+        DEVICE
+    )
 
     encoder = PositionalEncoding(
         L=10
@@ -163,6 +145,8 @@ def main():
         )
     )
 
+    print("\nTraining Started\n")
+
     for step in range(NUM_STEPS):
 
         img_idx = random.randint(
@@ -172,15 +156,13 @@ def main():
 
         image, pose = dataset[img_idx]
 
-        image = image[..., :3]
-
         image = image.to(
             DEVICE
-        ).float()
+        )
 
         pose = pose.to(
             DEVICE
-        ).float()
+        )
 
         loss = train_step(
             image,
@@ -193,23 +175,44 @@ def main():
 
         if step % 100 == 0:
 
+            psnr = (
+                -10.0
+                * math.log10(
+                    max(loss, 1e-10)
+                )
+            )
+
             print(
-                f"Step {step:05d} | Loss {loss:.6f}"
+                f"Step {step:05d} | "
+                f"Loss {loss:.6f} | "
+                f"PSNR {psnr:.2f}"
             )
 
         if step % 1000 == 0 and step > 0:
 
+            checkpoint_path = os.path.join(
+                CHECKPOINT_DIR,
+                f"nerf_{step}.pt"
+            )
+
             torch.save(
                 model.state_dict(),
-                f"checkpoint_{step}.pt"
+                checkpoint_path
+            )
+
+            print(
+                f"Saved {checkpoint_path}"
             )
 
     torch.save(
         model.state_dict(),
-        "nerf_final.pt"
+        os.path.join(
+            CHECKPOINT_DIR,
+            "nerf_final.pt"
+        )
     )
 
-    print("Training complete")
+    print("\nTraining Complete")
 
 
 if __name__ == "__main__":
