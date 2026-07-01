@@ -8,7 +8,7 @@ from dataset import NeRFDataset
 from rays import get_rays
 from sampler import sample_points
 from encoding import PositionalEncoding
-from model import TinyNeRF
+from model import NeRF
 from render import volume_render
 
 
@@ -119,7 +119,7 @@ def main():
         "data/lego/transforms_train.json"
     )
 
-    model = TinyNeRF().to(
+    model = NeRF().to(
         DEVICE
     )
 
@@ -149,10 +149,7 @@ def main():
 
     for step in range(NUM_STEPS):
 
-        img_idx = random.randint(
-            0,
-            len(dataset) - 1
-        )
+        img_idx = step % len(dataset)
 
         image, pose = dataset[img_idx]
 
