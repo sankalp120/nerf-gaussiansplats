@@ -6,14 +6,16 @@ from skimage.metrics import (
 )
 
 from dataset import NeRFDataset
-
 import imageio.v2 as imageio
+import numpy as np
 
 dataset = NeRFDataset(
     "data/lego/transforms_test.json"
 )
 
 gt, _ = dataset[0]
+
+gt = gt.cpu().numpy()
 
 pred = imageio.imread(
     "rendered.png"
