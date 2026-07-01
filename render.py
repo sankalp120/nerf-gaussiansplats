@@ -16,15 +16,18 @@ def volume_render(rgb, sigma, t_vals):
         weights
     """
 
-    delta = t_vals[1:] - t_vals[:-1]
+    delta = t_vals[..., 1:] - t_vals[..., :-1]
 
-    delta = torch.cat([
-        delta,
-        torch.tensor(
-            [1e10],
-            device=t_vals.device
-        )
-    ])
+    delta = torch.cat(
+        [
+            delta,
+            torch.full_like(
+                delta[..., :1],
+                1e10
+            )
+        ],
+        dim=-1
+    )
 
     alpha = 1.0 - torch.exp(
         -sigma * delta
