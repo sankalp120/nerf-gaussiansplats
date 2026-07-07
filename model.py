@@ -21,6 +21,7 @@ class NeRF(nn.Module):
 
         self.fc6 = nn.Linear(256,256)
         self.fc7 = nn.Linear(256,256)
+        
         self.fc8 = nn.Linear(256,256)
 
         self.sigma = nn.Linear(
